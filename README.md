@@ -6,9 +6,29 @@ MCP server to interact with Google.
 
 ### Tools
 
-The server implements multiple tools to interact with G-Suite:
+The server implements multiple tools to interact with G-Suite. Right now, the following tools are implemented:
 
+- Read email from gmail
 
+### Oauth2
+
+Gsuite requires OAuth2 authorization. So you need to setup an Oauth2 client in the Google Auth platform. Then create a `.gauth.json` in your working directory:
+
+```
+{
+    "web": {
+        "client_id": "$your_client_id",
+        "client_secret": "$your_client_secret",
+        "redirect_uris": ["http://localhost:4100/code"],
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token"
+    }
+}
+```
+
+When the server starts the first time, it will redirect you to Google and ask for your credentials, scope, etc. After a successful login, it stores the credentials in a local file called `oauth2creds.json`.
+
+Note: This behaviour will very likely change! 
 
 ### Example prompts
 
@@ -16,16 +36,12 @@ Its good to first instruct Claude to use Gmail etc.. Then it will always call th
 
 The use prompts like this:
 
+- Retrieve my latest unread messages
+- Search my emails for XYZ
+- Retrieve all emails from accounting
+- Take the email about ABC and summarize it
 
 ## Configuration
-
-### Environment Variables
-
-Create a `.env` file in the root directory with the following required variable:
-
-```
-
-```
 
 Without this API key, the server will not be able to function.
 

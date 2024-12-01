@@ -46,20 +46,21 @@ class GetUserInfoToolHandler(ToolHandler):
             )
         ]
     
-class ReadEmailsToolHandler(ToolHandler):
+class QueryEmailsToolHandler(ToolHandler):
     def __init__(self):
-        super().__init__("read_gmail_emails")
+        super().__init__("query_gmail_emails")
 
     def get_tool_description(self) -> Tool:
         return Tool(
             name=self.name,
-            description="Reads Gmail emails based on an optional search query. Returns emails in reverse chronological order (newest first).",
+            description="Query Gmail emails based on an optional search query. Returns emails in reverse chronological order (newest first).",
             inputSchema={
                 "type": "object",
                 "properties": {
                     "query": {
                         "type": "string",
                         "description": """Gmail search query (optional). Examples:
+                            - a $string: Search email body, subject, and sender information for $string
                             - 'is:unread' for unread emails
                             - 'from:example@gmail.com' for emails from a specific sender
                             - 'newer_than:2d' for emails from last 2 days
@@ -83,11 +84,53 @@ class ReadEmailsToolHandler(ToolHandler):
         gmail_service = gmail.GmailService()
         query = args.get('query')
         max_results = args.get('max_results', 100)
-        emails = gmail_service.read_emails(query=query, max_results=max_results)
+        emails = gmail_service.query_emails(query=query, max_results=max_results)
 
         return [
             TextContent(
                 type="text",
                 text=json.dumps(emails, indent=2)
+            )
+        ]
+    
+class GetEmailByIdToolHandler(ToolHandler):
+    def __init__(self):
+        super().__init__("get_gmail_email")
+
+    def get_tool_description(self) -> Tool:
+        return Tool(
+            name=self.name,
+            description="Retrieves a complete Gmail email message by its ID, including the full message body.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "email_id": {
+                        "type": "string",
+                        "description": "The ID of the Gmail message to retrieve"
+                    }
+                },
+                "required": ["email_id"]
+            }
+        )
+
+    def run_tool(self, args: dict) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+        if "email_id" not in args:
+            raise RuntimeError("Missing required argument: email_id")
+
+        gmail_service = gmail.GmailService()
+        email = gmail_service.get_email_by_id(args["email_id"])
+
+        if email is None:
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Failed to retrieve email with ID: {args['email_id']}"
+                )
+            ]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(email, indent=2)
             )
         ]

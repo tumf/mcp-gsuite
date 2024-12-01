@@ -101,7 +101,8 @@ def get_tool_handler(name: str) -> tools.ToolHandler | None:
     return tool_handlers[name]
 
 add_tool_handler(tools.GetUserInfoToolHandler())
-add_tool_handler(tools.ReadEmailsToolHandler())
+add_tool_handler(tools.QueryEmailsToolHandler())
+add_tool_handler(tools.GetEmailByIdToolHandler())
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
