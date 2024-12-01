@@ -198,3 +198,37 @@ class CreateDraftToolHandler(ToolHandler):
                 text=json.dumps(draft, indent=2)
             )
         ]
+    
+class DeleteDraftToolHandler(ToolHandler):
+    def __init__(self):
+        super().__init__("delete_gmail_draft")
+
+    def get_tool_description(self) -> Tool:
+        return Tool(
+            name=self.name,
+            description="Deletes a Gmail draft message by its ID. This action cannot be undone.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "draft_id": {
+                        "type": "string",
+                        "description": "The ID of the draft to delete"
+                    }
+                },
+                "required": ["draft_id"]
+            }
+        )
+
+    def run_tool(self, args: dict) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+        if "draft_id" not in args:
+            raise RuntimeError("Missing required argument: draft_id")
+
+        gmail_service = gmail.GmailService()
+        success = gmail_service.delete_draft(args["draft_id"])
+
+        return [
+            TextContent(
+                type="text",
+                text="Successfully deleted draft" if success else f"Failed to delete draft with ID: {args['draft_id']}"
+            )
+        ]

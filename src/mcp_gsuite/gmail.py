@@ -222,3 +222,25 @@ class GmailService():
             logging.error(f"Error creating draft: {str(e)}")
             logging.error(traceback.format_exc())
             return None
+        
+    def delete_draft(self, draft_id: str) -> bool:
+        """
+        Delete a draft email message.
+        
+        Args:
+            draft_id (str): The ID of the draft to delete
+            
+        Returns:
+            bool: True if deletion was successful, False otherwise
+        """
+        try:
+            self.service.users().drafts().delete(
+                userId='me',
+                id=draft_id
+            ).execute()
+            return True
+            
+        except Exception as e:
+            logging.error(f"Error deleting draft {draft_id}: {str(e)}")
+            logging.error(traceback.format_exc())
+            return False

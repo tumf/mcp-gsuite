@@ -21,6 +21,7 @@ The server implements multiple tools to interact with G-Suite. Right now, the fo
 - Query emails from gmail (supports full G-mail query API)
 - Get email content (by id)
 - Create email draft
+- Delete draft (by id)
 
 ### Oauth2
 

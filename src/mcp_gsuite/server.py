@@ -106,6 +106,7 @@ add_tool_handler(tools.GetUserInfoToolHandler())
 add_tool_handler(tools.QueryEmailsToolHandler())
 add_tool_handler(tools.GetEmailByIdToolHandler())
 add_tool_handler(tools.CreateDraftToolHandler())
+add_tool_handler(tools.DeleteDraftToolHandler())
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
