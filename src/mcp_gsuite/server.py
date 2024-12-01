@@ -135,8 +135,9 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
 
 async def main():
 
-    #setup_oauth2()
+    setup_oauth2()
     logger.error("Handled oauth. start MCP server")
+
 
     # Import here to avoid issues with event loops
     from mcp.server.stdio import stdio_server
