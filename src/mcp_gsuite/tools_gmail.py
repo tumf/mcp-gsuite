@@ -9,19 +9,9 @@ from mcp.types import (
 from . import gauth
 from . import gmail
 import json
+from . import toolhandler
 
-class ToolHandler():
-    def __init__(self, tool_name: str):
-        self.name = tool_name
-
-    def get_tool_description(self) -> Tool:
-        raise NotImplementedError()
-
-    def run_tool(self, args: dict) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
-        raise NotImplementedError()
-    
-
-class GetUserInfoToolHandler(ToolHandler):
+class GetUserInfoToolHandler(toolhandler.ToolHandler):
     def __init__(self):
         super().__init__("get_gmail_user_info")
 
@@ -46,7 +36,7 @@ class GetUserInfoToolHandler(ToolHandler):
             )
         ]
     
-class QueryEmailsToolHandler(ToolHandler):
+class QueryEmailsToolHandler(toolhandler.ToolHandler):
     def __init__(self):
         super().__init__("query_gmail_emails")
 
@@ -93,7 +83,7 @@ class QueryEmailsToolHandler(ToolHandler):
             )
         ]
     
-class GetEmailByIdToolHandler(ToolHandler):
+class GetEmailByIdToolHandler(toolhandler.ToolHandler):
     def __init__(self):
         super().__init__("get_gmail_email")
 
@@ -136,7 +126,7 @@ class GetEmailByIdToolHandler(ToolHandler):
         ]
     
 
-class CreateDraftToolHandler(ToolHandler):
+class CreateDraftToolHandler(toolhandler.ToolHandler):
     def __init__(self):
         super().__init__("create_gmail_draft")
 
@@ -199,7 +189,7 @@ class CreateDraftToolHandler(ToolHandler):
             )
         ]
     
-class DeleteDraftToolHandler(ToolHandler):
+class DeleteDraftToolHandler(toolhandler.ToolHandler):
     def __init__(self):
         super().__init__("delete_gmail_draft")
 

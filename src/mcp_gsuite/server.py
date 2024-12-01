@@ -1,5 +1,4 @@
 
-import json
 import logging
 from collections.abc import Sequence
 from functools import lru_cache
@@ -10,11 +9,8 @@ from dotenv import load_dotenv
 from mcp.server import Server
 import threading
 from mcp.types import (
-    Resource,
     Tool,
     TextContent,
-    ImageContent,
-    EmbeddedResource,
     LoggingLevel,
 )
 from . import gauth
@@ -57,7 +53,8 @@ class OauthListener(BaseHTTPRequestHandler):
 
 load_dotenv()
 
-from . import tools
+from . import tools_gmail
+from . import toolhandler
 
 # Load environment variables
 
@@ -91,22 +88,22 @@ def setup_oauth2():
 app = Server("mcp-gsuite")
 
 tool_handlers = {}
-def add_tool_handler(tool_class: tools.ToolHandler):
+def add_tool_handler(tool_class: toolhandler.ToolHandler):
     global tool_handlers
 
     tool_handlers[tool_class.name] = tool_class
 
-def get_tool_handler(name: str) -> tools.ToolHandler | None:
+def get_tool_handler(name: str) -> toolhandler.ToolHandler | None:
     if name not in tool_handlers:
         return None
     
     return tool_handlers[name]
 
-add_tool_handler(tools.GetUserInfoToolHandler())
-add_tool_handler(tools.QueryEmailsToolHandler())
-add_tool_handler(tools.GetEmailByIdToolHandler())
-add_tool_handler(tools.CreateDraftToolHandler())
-add_tool_handler(tools.DeleteDraftToolHandler())
+add_tool_handler(tools_gmail.GetUserInfoToolHandler())
+add_tool_handler(tools_gmail.QueryEmailsToolHandler())
+add_tool_handler(tools_gmail.GetEmailByIdToolHandler())
+add_tool_handler(tools_gmail.CreateDraftToolHandler())
+add_tool_handler(tools_gmail.DeleteDraftToolHandler())
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:

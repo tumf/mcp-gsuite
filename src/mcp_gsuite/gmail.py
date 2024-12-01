@@ -26,10 +26,10 @@ class GmailService():
             None: If parsing fails
         """
         try:
-            logging.error("----------------")
-            import json
-            logging.error(json.dumps(txt))
-            logging.error("----------------")
+            #logging.error("----------------")
+            #import json
+            #logging.error(json.dumps(txt))
+            #logging.error("----------------")
             message_id = txt.get('id')
             payload = txt.get('payload', {})
             headers = payload.get('headers', [])
