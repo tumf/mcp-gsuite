@@ -8,11 +8,20 @@ MCP server to interact with Google.
 
 The server implements multiple tools to interact with G-Suite. Right now, the following tools are implemented:
 
-- Read email from gmail
+- Query emails from gmail (supports full Gmail query API)
+- Get email content (by id)
 
 ### Oauth2
 
-Gsuite requires OAuth2 authorization. So you need to setup an Oauth2 client in the Google Auth platform. Then create a `.gauth.json` in your working directory:
+Gsuite requires OAuth2 authorization. So you need to setup an Oauth2 client in the Google Auth platform and copy the client id and client secret. 
+Make sure to allow at the following two scopes: 
+
+- `openid`
+- `https://mail.google.com/`
+
+(Note: This should be finetuned.)
+
+Then create a `.gauth.json` in your working directory:
 
 ```
 {
@@ -40,10 +49,6 @@ The use prompts like this:
 - Search my emails for XYZ
 - Retrieve all emails from accounting
 - Take the email about ABC and summarize it
-
-## Configuration
-
-Without this API key, the server will not be able to function.
 
 ## Quickstart
 
