@@ -54,6 +54,7 @@ class OauthListener(BaseHTTPRequestHandler):
 load_dotenv()
 
 from . import tools_gmail
+from . import tools_calendar
 from . import toolhandler
 
 # Load environment variables
