@@ -83,8 +83,10 @@ def setup_oauth2():
     if not credentials:
         start_auth_flow()
     else:
-        print(f"found oauth2 credentials. User info={gauth.get_user_info(credentials=credentials)}")
-        print()
+        if credentials.access_token_expired:
+            logger.error("credentials expired. try refresh")
+            gauth.refresh(credentials=credentials)
+
 
 app = Server("mcp-gsuite")
 
@@ -119,6 +121,7 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
     if not isinstance(arguments, dict):
         raise RuntimeError("arguments must be dictionary")
 
+    setup_oauth2()
 
     tool_handler = get_tool_handler(name)
     if not tool_handler:
@@ -133,7 +136,7 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent]:
 
 async def main():
 
-    setup_oauth2()
+    #setup_oauth2()
     logger.error("Handled oauth. start MCP server")
 
     # Import here to avoid issues with event loops

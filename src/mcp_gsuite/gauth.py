@@ -7,6 +7,7 @@ from oauth2client.client import (
 )
 from apiclient.discovery import build
 import httplib2
+from google.auth.transport.requests import Request
 
 # Path to client_secrets.json which should contain a JSON document such as:
 #   {
@@ -48,6 +49,10 @@ class NoRefreshTokenException(GetCredentialsException):
 
 class NoUserIdException(Exception):
   """Error raised when no user ID could be retrieved."""
+
+
+def refresh(credentials: OAuth2Credentials):
+    credentials.refresh(Request())
 
 
 def get_stored_credentials() -> OAuth2Credentials | None:
