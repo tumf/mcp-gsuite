@@ -134,3 +134,67 @@ class GetEmailByIdToolHandler(ToolHandler):
                 text=json.dumps(email, indent=2)
             )
         ]
+    
+
+class CreateDraftToolHandler(ToolHandler):
+    def __init__(self):
+        super().__init__("create_gmail_draft")
+
+    def get_tool_description(self) -> Tool:
+        return Tool(
+            name=self.name,
+            description="Creates a draft email message in Gmail with specified recipient, subject, body, and optional CC recipients.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "to": {
+                        "type": "string",
+                        "description": "Email address of the recipient"
+                    },
+                    "subject": {
+                        "type": "string",
+                        "description": "Subject line of the email"
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Body content of the email"
+                    },
+                    "cc": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "description": "Optional list of email addresses to CC"
+                    }
+                },
+                "required": ["to", "subject", "body"]
+            }
+        )
+
+    def run_tool(self, args: dict) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+        required = ["to", "subject", "body"]
+        if not all(key in args for key in required):
+            raise RuntimeError(f"Missing required arguments: {', '.join(required)}")
+
+        gmail_service = gmail.GmailService()
+        draft = gmail_service.create_draft(
+            to=args["to"],
+            subject=args["subject"],
+            body=args["body"],
+            cc=args.get("cc")
+        )
+
+        if draft is None:
+            return [
+                TextContent(
+                    type="text",
+                    text="Failed to create draft email"
+                )
+            ]
+
+        return [
+            TextContent(
+                type="text",
+                text=json.dumps(draft, indent=2)
+            )
+        ]

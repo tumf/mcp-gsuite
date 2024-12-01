@@ -2,14 +2,25 @@
 
 MCP server to interact with Google.
 
+## Example prompts
+
+Right now, this MCP server only supports gmail. It supports the following functions:
+
+- Retrieve my latest unread messages
+- Search my emails for XYZ
+- Retrieve all emails from accounting
+- Take the email about ABC and summarize it
+- Write a nice response to Alice's last email and upload a draft.
+
 ## Components
 
 ### Tools
 
 The server implements multiple tools to interact with G-Suite. Right now, the following tools are implemented:
 
-- Query emails from gmail (supports full Gmail query API)
+- Query emails from gmail (supports full G-mail query API)
 - Get email content (by id)
+- Create email draft
 
 ### Oauth2
 
@@ -38,17 +49,6 @@ Then create a `.gauth.json` in your working directory:
 When the server starts the first time, it will redirect you to Google and ask for your credentials, scope, etc. After a successful login, it stores the credentials in a local file called `oauth2creds.json`.
 
 Note: This behaviour will very likely change! 
-
-### Example prompts
-
-Its good to first instruct Claude to use Gmail etc.. Then it will always call the tool.
-
-The use prompts like this:
-
-- Retrieve my latest unread messages
-- Search my emails for XYZ
-- Retrieve all emails from accounting
-- Take the email about ABC and summarize it
 
 ## Quickstart
 

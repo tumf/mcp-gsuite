@@ -3,6 +3,8 @@ from . import gauth
 import logging
 import base64
 import traceback
+from email.mime.text import MIMEText
+
 
 class GmailService():
     def __init__(self):
@@ -24,6 +26,10 @@ class GmailService():
             None: If parsing fails
         """
         try:
+            logging.error("----------------")
+            import json
+            logging.error(json.dumps(txt))
+            logging.error("----------------")
             message_id = txt.get('id')
             payload = txt.get('payload', {})
             headers = payload.get('headers', [])
@@ -32,6 +38,7 @@ class GmailService():
             subject = ""
             sender = ""
             date = ""
+            cc = ""
             for header in headers:
                 name = header.get('name', '')
                 if name == 'Subject':
@@ -40,12 +47,15 @@ class GmailService():
                     sender = header.get('value', '')
                 if name == 'Date':
                     date = header.get('value', '')
+                if name == 'Cc':
+                    cc = header.get('value', '')
 
             result = {
                 "id": message_id,
                 "date": date,
                 "subject": subject,
-                "sender": sender,
+                "from": sender,
+                "ccs": cc,
                 "labels": txt.get('labelIds'),
                 "snippet": txt.get('snippet'),
             }
@@ -159,5 +169,56 @@ class GmailService():
             
         except Exception as e:
             logging.error(f"Error retrieving email {email_id}: {str(e)}")
+            logging.error(traceback.format_exc())
+            return None
+        
+    def create_draft(self, to: str, subject: str, body: str, cc: list[str] = None) -> dict | None:
+        """
+        Create a draft email message.
+        
+        Args:
+            to (str): Email address of the recipient
+            subject (str): Subject line of the email
+            body (str): Body content of the email
+            cc (list[str], optional): List of email addresses to CC
+            
+        Returns:
+            dict: Draft message data including the draft ID if successful
+            None: If creation fails
+        """
+        try:
+            # Create message body
+            message = {
+                'to': to,
+                'subject': subject,
+                'text': body,
+            }
+            if cc:
+                message['cc'] = ','.join(cc)
+                
+            # Create the message in MIME format
+            mime_message = MIMEText(body)
+            mime_message['to'] = to
+            mime_message['subject'] = subject
+            if cc:
+                mime_message['cc'] = ','.join(cc)
+                
+            # Encode the message
+            raw_message = base64.urlsafe_b64encode(mime_message.as_bytes()).decode('utf-8')
+            
+            # Create the draft
+            draft = self.service.users().drafts().create(
+                userId='me',
+                body={
+                    'message': {
+                        'raw': raw_message
+                    }
+                }
+            ).execute()
+            
+            return draft
+            
+        except Exception as e:
+            logging.error(f"Error creating draft: {str(e)}")
             logging.error(traceback.format_exc())
             return None

@@ -103,6 +103,7 @@ def get_tool_handler(name: str) -> tools.ToolHandler | None:
 add_tool_handler(tools.GetUserInfoToolHandler())
 add_tool_handler(tools.QueryEmailsToolHandler())
 add_tool_handler(tools.GetEmailByIdToolHandler())
+add_tool_handler(tools.CreateDraftToolHandler())
 
 @app.list_tools()
 async def list_tools() -> list[Tool]:
