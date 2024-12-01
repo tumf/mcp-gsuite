@@ -5,7 +5,10 @@ description = "Example MCP server to create a knowledge-base"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+ "google-api-python-client>=2.154.0",
+ "httplib2>=0.22.0",
  "mcp>=1.0.0",
+ "oauth2client>=4.1.3",
  "python-dotenv>=1.0.1",
  "requests>=2.32.3",
 ]
