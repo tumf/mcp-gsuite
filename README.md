@@ -25,13 +25,13 @@ Right now, this MCP server supports Gmail and Calendar integration with the foll
 - Delete calendar events
 
 Example prompts you can try:
-- "Show me my unread emails from the last 2 days"
-- "Get the full content of email ID xyz123"
-- "Draft an email to alice@example.com about the project update"
-- "Reply to Bob's last email and save it as a draft"
-- "Show my calendar events for next week"
-- "Create a team meeting for tomorrow at 2 PM"
-- "Cancel the event scheduled for Friday"
+
+- Retrieve my latest unread messages
+- Search my emails from the Scrum Master
+- Retrieve all emails from accounting
+- Take the email about ABC and summarize it
+- Write a nice response to Alice's last email and upload a draft.
+- Reply to Bob's email with a Thank you note. Store it as draft
 
 ## Quickstart
 
