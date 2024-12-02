@@ -52,10 +52,6 @@ class NoUserIdException(Exception):
   """Error raised when no user ID could be retrieved."""
 
 
-def refresh(credentials: OAuth2Credentials):
-    credentials.refresh(Request())
-
-
 def get_stored_credentials() -> OAuth2Credentials | None:
     """Retrieved stored credentials for the provided user ID.
 
