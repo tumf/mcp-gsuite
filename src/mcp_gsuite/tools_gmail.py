@@ -9,8 +9,7 @@ from mcp.types import (
 from . import gmail
 import json
 from . import toolhandler
-
-
+import base64
 
 class QueryEmailsToolHandler(toolhandler.ToolHandler):
     def __init__(self):
@@ -75,7 +74,7 @@ class GetEmailByIdToolHandler(toolhandler.ToolHandler):
     def get_tool_description(self) -> Tool:
         return Tool(
             name=self.name,
-            description="Retrieves a complete Gmail email message by its ID, including the full message body.",
+            description="Retrieves a complete Gmail email message by its ID, including the full message body and attachment IDs.",
             inputSchema={
                 "type": "object",
                 "properties": {
@@ -97,7 +96,7 @@ class GetEmailByIdToolHandler(toolhandler.ToolHandler):
         if not user_id:
             raise RuntimeError(f"Missing required argument: {toolhandler.USER_ID_ARG}")
         gmail_service = gmail.GmailService(user_id=user_id)
-        email = gmail_service.get_email_by_id(args["email_id"])
+        email, attachment_ids = gmail_service.get_email_by_id_with_attachments(args["email_id"])
 
         if email is None:
             return [
@@ -107,14 +106,16 @@ class GetEmailByIdToolHandler(toolhandler.ToolHandler):
                 )
             ]
 
+        email["attachmentIds"] = attachment_ids
+
         return [
             TextContent(
                 type="text",
                 text=json.dumps(email, indent=2)
             )
         ]
-    
 
+    
 class CreateDraftToolHandler(toolhandler.ToolHandler):
     def __init__(self):
         super().__init__("create_gmail_draft")
@@ -303,5 +304,96 @@ class ReplyEmailToolHandler(toolhandler.ToolHandler):
             TextContent(
                 type="text",
                 text=json.dumps(result, indent=2)
+            )
+        ]
+
+class GetAttachmentToolHandler(toolhandler.ToolHandler):
+    def __init__(self):
+        super().__init__("get_gmail_attachment")
+
+    def get_tool_description(self) -> Tool:
+        return Tool(
+            name=self.name,
+            description="Retrieves a Gmail attachment by its ID.",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "__user_id__": self.get_user_id_arg_schema(),
+                    "message_id": {
+                        "type": "string",
+                        "description": "The ID of the Gmail message containing the attachment"
+                    },
+                    "attachment_id": {
+                        "type": "string",
+                        "description": "The ID of the attachment to retrieve"
+                    },
+                    "mime_type": {
+                        "type": "string",
+                        "description": "The MIME type of the attachment"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "The filename of the attachment"
+                    },
+                    "save_to_disk": {
+                        "type": "string",
+                        "description": "The fullpath to save the attachment to disk. If not provided, the attachment is returned as a resource."
+                    }
+                },
+                "required": ["message_id", "attachment_id", "mime_type", "filename", toolhandler.USER_ID_ARG]
+            }
+        )
+
+    def run_tool(self, args: dict) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+        if "message_id" not in args:
+            raise RuntimeError("Missing required argument: message_id")
+        if "attachment_id" not in args:
+            raise RuntimeError("Missing required argument: attachment_id")
+        if "mime_type" not in args:
+            raise RuntimeError("Missing required argument: mime_type")
+        if "filename" not in args:
+            raise RuntimeError("Missing required argument: filename")
+        filename = args["filename"]
+        mime_type = args["mime_type"]
+        user_id = args.get(toolhandler.USER_ID_ARG)
+        if not user_id:
+            raise RuntimeError(f"Missing required argument: {toolhandler.USER_ID_ARG}")
+        gmail_service = gmail.GmailService(user_id=user_id)
+        attachment_data = gmail_service.get_attachment(args["message_id"], args["attachment_id"])
+
+        if attachment_data is None:
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Failed to retrieve attachment with ID: {args['attachment_id']} from message: {args['message_id']}"
+                )
+            ]
+
+        file_data = attachment_data["data"]
+        attachment_url = f"attachment://gmail/{args['message_id']}/{args['attachment_id']}/{filename}"
+        if args.get("save_to_disk"):
+            standard_base64_data = file_data.replace("-", "+").replace("_", "/")
+
+            missing_padding = len(standard_base64_data) % 4
+            if missing_padding:
+                standard_base64_data += '=' * (4 - missing_padding)
+
+            decoded_data = base64.b64decode(standard_base64_data)
+            with open(args["save_to_disk"], "wb") as f:
+                f.write(decoded_data)
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Attachment saved to disk: {args['save_to_disk']}"
+                )
+            ]
+        return [
+            EmbeddedResource(
+                type="resource",
+                resource={
+                    "blob": file_data,
+                    "uri": attachment_url,
+                    "mimeType": mime_type,
+                },
             )
         ]
