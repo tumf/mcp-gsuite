@@ -16,6 +16,8 @@ Right now, this MCP server supports Gmail and Calendar integration with the foll
 * Create new draft emails with recipients, subject, body and CC options
 * Delete draft emails
 * Reply to existing emails (can either send immediately or save as draft)
+* Retrieve multiple emails at once by their IDs.
+* Save multiple attachments from emails to your local system.
 
 3. Calendar
 * Manage multiple calendars
