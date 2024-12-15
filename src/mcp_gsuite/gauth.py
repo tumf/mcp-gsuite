@@ -255,5 +255,6 @@ def get_credentials(authorization_code, state):
         logging.error('No user ID could be retrieved.')
         # No refresh token has been retrieved.
     authorization_url = get_authorization_url(email_address, state)
+    logging.info(f"authorization_url: {authorization_url}")
     raise NoRefreshTokenException(authorization_url)
 
