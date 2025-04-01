@@ -1,7 +1,7 @@
 # mcp-gsuite MCP server
 
 [![smithery badge](https://smithery.ai/badge/mcp-gsuite)](https://smithery.ai/server/mcp-gsuite)
-MCP server to interact with Google produts.
+MCP server to interact with Google products.
 
 ## Example prompts
 
