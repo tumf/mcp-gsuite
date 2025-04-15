@@ -181,7 +181,9 @@ def get_user_info(credentials):
         http=credentials.authorize(httplib2.Http()))
     user_info = None
     try:
-        user_info = user_info_service.userinfo().get().execute()
+        raw_response = user_info_service.userinfo().get().execute()
+        logging.error(f"Raw API response: {raw_response}")
+        user_info = raw_response
     except Exception as e:
         logging.error(f'An error occurred: {e}')
     if user_info and user_info.get('id'):
@@ -233,8 +235,14 @@ def get_credentials(authorization_code, state):
     try:
         credentials = exchange_code(authorization_code)
         user_info = get_user_info(credentials)
-        import json
-        logging.error(f"user_info: {json.dumps(user_info)}")
+        logging.error(f"user_info type: {type(user_info)}")
+        try:
+            if isinstance(user_info, dict):
+                logging.error(f"user_info keys: {list(user_info.keys())}")
+            logging.error(f"user_info: {json.dumps(user_info)}")
+        except TypeError as e:
+            logging.error(f"user_info (non-JSON-serializable): {str(user_info)}")
+            logging.error(f"TypeError details: {str(e)}")
         email_address = user_info.get('email')
         
         if credentials.refresh_token is not None:

@@ -1,4 +1,3 @@
-
 import logging
 from collections.abc import Sequence
 from functools import lru_cache
@@ -14,6 +13,7 @@ from mcp.types import (
     TextContent,
     ImageContent,
     EmbeddedResource,
+    Resource,
 )
 import json
 from . import gauth
@@ -98,43 +98,75 @@ def setup_oauth2(user_id: str):
         gauth.store_credentials(credentials=credentials, user_id=user_id)
 
 
-app = Server("mcp-gsuite")
+# 最初にカスタムサーバークラスを定義
+class GsuiteServer(Server):
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.tool_handlers = {}
+        
+    def add_tool_handler(self, tool_class: toolhandler.ToolHandler):
+        self.tool_handlers[tool_class.name] = tool_class
+        
+    def get_tool_handler(self, name: str) -> toolhandler.ToolHandler | None:
+        if name not in self.tool_handlers:
+            return None
+        return self.tool_handlers[name]
+        
+    async def handle_method(self, method: str, params: dict) -> Any:
+        logging.info(f"Handling method: {method}")
+        if method == "tools/list":
+            logging.info("tools/list method called")
+            return {"tools": [vars(th.get_tool_description()) for th in self.tool_handlers.values()]}
+        return await super().handle_method(method, params)
 
-tool_handlers = {}
-def add_tool_handler(tool_class: toolhandler.ToolHandler):
-    global tool_handlers
+# Serverインスタンスを作成
+app = GsuiteServer("mcp-gsuite")
 
-    tool_handlers[tool_class.name] = tool_class
+# ツールハンドラーの登録
+app.add_tool_handler(tools_gmail.QueryEmailsToolHandler())
+app.add_tool_handler(tools_gmail.GetEmailByIdToolHandler())
+app.add_tool_handler(tools_gmail.CreateDraftToolHandler())
+app.add_tool_handler(tools_gmail.DeleteDraftToolHandler())
+app.add_tool_handler(tools_gmail.ReplyEmailToolHandler())
+app.add_tool_handler(tools_gmail.GetAttachmentToolHandler())
+app.add_tool_handler(tools_gmail.BulkGetEmailsByIdsToolHandler())
+app.add_tool_handler(tools_gmail.BulkSaveAttachmentsToolHandler())
 
-def get_tool_handler(name: str) -> toolhandler.ToolHandler | None:
-    if name not in tool_handlers:
-        return None
-    
-    return tool_handlers[name]
+app.add_tool_handler(tools_calendar.ListCalendarsToolHandler())
+app.add_tool_handler(tools_calendar.GetCalendarEventsToolHandler())
+app.add_tool_handler(tools_calendar.CreateCalendarEventToolHandler())
+app.add_tool_handler(tools_calendar.DeleteCalendarEventToolHandler())
 
-add_tool_handler(tools_gmail.QueryEmailsToolHandler())
-add_tool_handler(tools_gmail.GetEmailByIdToolHandler())
-add_tool_handler(tools_gmail.CreateDraftToolHandler())
-add_tool_handler(tools_gmail.DeleteDraftToolHandler())
-add_tool_handler(tools_gmail.ReplyEmailToolHandler())
-add_tool_handler(tools_gmail.GetAttachmentToolHandler())
-add_tool_handler(tools_gmail.BulkGetEmailsByIdsToolHandler())
-add_tool_handler(tools_gmail.BulkSaveAttachmentsToolHandler())
-
-add_tool_handler(tools_calendar.ListCalendarsToolHandler())
-add_tool_handler(tools_calendar.GetCalendarEventsToolHandler())
-add_tool_handler(tools_calendar.CreateCalendarEventToolHandler())
-add_tool_handler(tools_calendar.DeleteCalendarEventToolHandler())
-
-@app.list_tools()
-async def list_tools() -> list[Tool]:
+@app.list_resources()
+async def list_resources() -> list[Resource]:
     """List available tools."""
+    logging.info("resources/list method called")
+    tools = [th.get_tool_description() for th in app.tool_handlers.values()]
+    # Toolオブジェクトを辞書に変換し、Resourceとして返す
+    resources = []
+    for tool in tools:
+        resource_dict = {
+            "id": tool.name,
+            "type": "tool",
+            "name": tool.name,
+            "uri": f"mcp://tool/{tool.name}",
+            "description": tool.description,
+            "metadata": {
+                "inputSchema": tool.inputSchema
+            }
+        }
+        resources.append(Resource(**resource_dict))
+    return resources
 
-    return [th.get_tool_description() for th in tool_handlers.values()]
-
+@app.list_prompts()
+async def list_prompts() -> list[dict]:
+    """List available prompts."""
+    logging.info("prompts/list method called")
+    return []  # このMCPサーバーではプロンプトを提供しない
 
 @app.call_tool()
 async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageContent | EmbeddedResource]:
+    logging.info(f"call_tool method called with name: {name}")
     try:        
         if not isinstance(arguments, dict):
             raise RuntimeError("arguments must be dictionary")
@@ -144,7 +176,7 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
 
         setup_oauth2(user_id=arguments.get(toolhandler.USER_ID_ARG, ""))
 
-        tool_handler = get_tool_handler(name)
+        tool_handler = app.get_tool_handler(name)
         if not tool_handler:
             raise ValueError(f"Unknown tool: {name}")
 
@@ -154,20 +186,35 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
         logging.error(f"Error during call_tool: str(e)")
         raise RuntimeError(f"Caught Exception. Error: {str(e)}")
 
-
 async def main():
-    print(sys.platform)
-    accounts = gauth.get_account_info()
-    for account in accounts:
-        creds = gauth.get_stored_credentials(user_id=account.email)
-        if creds:
-            logging.info(f"found credentials for {account.email}")
+    logging.info(f"Platform: {sys.platform}")
+    try:
+        # Check configuration files
+        gauth_file = gauth.get_gauth_file()
+        accounts_file = gauth.get_accounts_file()
+        logging.info(f"Using gauth file: {gauth_file}")
+        logging.info(f"Using accounts file: {accounts_file}")
 
-    from mcp.server.stdio import stdio_server
+        accounts = gauth.get_account_info()
+        logging.info(f"Found {len(accounts)} account(s)")
+        for account in accounts:
+            creds = gauth.get_stored_credentials(user_id=account.email)
+            if creds:
+                logging.info(f"Found credentials for {account.email}")
 
-    async with stdio_server() as (read_stream, write_stream):
-        await app.run(
-            read_stream,
-            write_stream,
-            app.create_initialization_options()
-        )
+        from mcp.server.stdio import stdio_server
+        
+        logging.info("Starting MCP server...")
+        async with stdio_server() as (read_stream, write_stream):
+            logging.info("MCP server initialized, running main loop...")
+            logging.info(f"Available methods: resources/list, prompts/list, tools/list, call_tool")
+            
+            await app.run(
+                read_stream,
+                write_stream,
+                app.create_initialization_options()
+            )
+    except Exception as e:
+        logging.error(f"Error in main: {str(e)}")
+        logging.error(traceback.format_exc())
+        raise
