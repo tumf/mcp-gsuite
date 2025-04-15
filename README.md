@@ -1,7 +1,7 @@
-# mcp-gsuite MCP server
+# mcp-gsuite MCP server (using fastmcp)
 
 [![smithery badge](https://smithery.ai/badge/mcp-gsuite)](https://smithery.ai/server/mcp-gsuite)
-MCP server to interact with Google products.
+MCP server to interact with Google products, rewritten using the `fastmcp` library.
 
 ## Example prompts
 
@@ -50,7 +50,7 @@ Example prompts you can try:
 
 ### Installing via Smithery
 
-To install mcp-gsuite for Claude Desktop automatically via [Smithery](https://smithery.ai/server/mcp-gsuite):
+To install mcp-gsuite for Claude Desktop automatically via [Smithery](https://smithery.ai/server/mcp-gsuite) (Note: Smithery integration might need updates for the `fastmcp` version):
 
 ```bash
 npx -y @smithery/cli install mcp-gsuite --client claude
@@ -111,7 +111,7 @@ Google Workspace (G Suite) APIs require OAuth2 authorization. Follow these steps
 
 You can specifiy multiple accounts. Make sure they have access in your Google Auth app. The `extra_info` field is especially interesting as you can add info here that you want to tell the AI about the account (e.g. whether it has a specific agenda)
 
-Note: When you first execute one of the tools for a specific account, a browser will open, redirect you to Google and ask for your credentials, scope, etc. After a successful login, it stores the credentials in a local file called `.oauth.{email}.json` . Once you are authorized, the refresh token will be used.
+Note: **Initial Authentication Required:** Before running the server for the first time with a new account, you need to perform an initial OAuth2 authentication. This server does not yet include a built-in command for this. You may need to adapt the authentication logic from the previous version or use a separate script to generate the initial `.oauth2.{email}.json` credential file by completing the Google OAuth flow (which involves opening a browser, logging in, and granting permissions). Once the credential file exists, the server will use it and attempt to refresh the token automatically when needed.
 
 #### Claude Desktop
 
@@ -132,7 +132,7 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
         "--directory",
         "<dir_to>/mcp-gsuite",
         "run",
-        "mcp-gsuite"
+        "mcp-gsuite-fast" # Use the new entry point
       ]
     }
   }
@@ -140,7 +140,7 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 ```
 
 
-Note: You can also use the `uv run mcp-gsuite --accounts-file /path/to/custom/.accounts.json` to specify a different accounts file or `--credentials-dir /path/to/custom/credentials` to specify a different credentials directory.
+Note: Configuration is now primarily handled via environment variables or a `.env` file in the working directory, using `pydantic-settings`. See the Configuration Options section below.
 
 ```json
 {
@@ -151,11 +151,8 @@ Note: You can also use the `uv run mcp-gsuite --accounts-file /path/to/custom/.a
         "--directory",
         "<dir_to>/mcp-gsuite",
         "run",
-        "mcp-gsuite",
-        "--accounts-file",
-        "/path/to/custom/.accounts.json",
-        "--credentials-dir",
-        "/path/to/custom/credentials"
+        "mcp-gsuite-fast" # Use the new entry point
+        # Configuration via .env or environment variables is preferred now
       ]
     }
   }
@@ -174,11 +171,8 @@ Note: You can also use the `uv run mcp-gsuite --accounts-file /path/to/custom/.a
     "mcp-gsuite": {
       "command": "uvx",
       "args": [
-        "mcp-gsuite",
-        "--accounts-file",
-        "/path/to/custom/.accounts.json",
-        "--credentials-dir",
-        "/path/to/custom/credentials"
+        "mcp-gsuite-fast" # Use the new entry point
+        # Configuration via .env or environment variables is preferred now
       ]
     }
   }
@@ -187,23 +181,23 @@ Note: You can also use the `uv run mcp-gsuite --accounts-file /path/to/custom/.a
 
 </details>
 
-### Configuration Options
+### Configuration Options (via `.env` file or Environment Variables)
 
-The MCP server can be configured with several command-line options to specify custom paths for authentication and account information:
+Configuration is now managed using `pydantic-settings`. Create a `.env` file in the directory where you run the server, or set environment variables:
 
-* `--gauth-file`: Specifies the path to the `.gauth.json` file containing OAuth2 client configuration. Default is `./.gauth.json`.
-* `--accounts-file`: Specifies the path to the `.accounts.json` file containing information about the Google accounts. Default is `./.accounts.json`.
-* `--credentials-dir`: Specifies the directory where OAuth credentials are stored after successful authentication. Default is the current working directory with a subdirectory for each account as `.oauth.{email}.json`.
+* `GAUTH_FILE`: Path to the `.gauth.json` file containing OAuth2 client configuration. Default: `./.gauth.json`
+* `ACCOUNTS_FILE`: Path to the `.accounts.json` file containing Google account information. Default: `./.accounts.json`
+* `CREDENTIALS_DIR`: Directory to store the generated `.oauth2.{email}.json` credential files. Default: `.` (current directory)
 
-These options allow for flexibility in managing different environments or multiple sets of credentials and accounts, especially useful in development and testing scenarios.
+Example `.env` file:
 
-Example usage:
-
-```bash
-uv run mcp-gsuite --gauth-file /path/to/custom/.gauth.json --accounts-file /path/to/custom/.accounts.json --credentials-dir /path/to/custom/credentials
+```dotenv
+GAUTH_FILE=/path/to/your/.gauth.json
+ACCOUNTS_FILE=/path/to/your/.accounts.json
+CREDENTIALS_DIR=/path/to/your/credentials
 ```
 
-This configuration is particularly useful when you have multiple instances of the server running with different configurations or when deploying to environments where the default paths are not suitable.
+This allows for flexible configuration without command-line arguments when running the server.
 
 ## Development
 
@@ -243,7 +237,7 @@ experience, we strongly recommend using the [MCP Inspector](https://github.com/m
 You can launch the MCP Inspector via [ `npm` ](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) with this command:
 
 ```bash
-npx @modelcontextprotocol/inspector uv --directory /path/to/mcp-gsuite run mcp-gsuite
+npx @modelcontextprotocol/inspector uv --directory /path/to/mcp-gsuite run mcp-gsuite-fast
 ```
 
 Upon launching, the Inspector will display a URL that you can access in your browser to begin debugging.
@@ -251,5 +245,5 @@ Upon launching, the Inspector will display a URL that you can access in your bro
 You can also watch the server logs with this command:
 
 ```bash
-tail -n 20 -f ~/Library/Logs/Claude/mcp-server-mcp-gsuite.log
+tail -n 20 -f ~/Library/Logs/Claude/mcp-server-mcp-gsuite-fast.log # Log filename might change based on the server name
 ```

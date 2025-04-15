@@ -2,15 +2,20 @@ from googleapiclient.discovery import build
 from . import gauth
 import logging
 import traceback
+import datetime
+
 from datetime import datetime
 import pytz
 
 class CalendarService():
-    def __init__(self, user_id: str):
-        credentials = gauth.get_stored_credentials(user_id=user_id)
-        if not credentials:
-            raise RuntimeError("No Oauth2 credentials stored")
-        self.service = build('calendar', 'v3', credentials=credentials)  # Note: using v3 for Calendar API
+    def __init__(self, service):
+        # credentials = gauth.get_stored_credentials(user_id=user_id) # Handled by auth_helper
+        # if not credentials:
+        #     raise RuntimeError("No Oauth2 credentials stored")
+        # self.service = build('calendar', 'v3', credentials=credentials) # Service is now passed in
+        if not service:
+            raise ValueError("A valid Google API service client must be provided.")
+        self.service = service
     
     def list_calendars(self) -> list:
         """
@@ -42,74 +47,40 @@ class CalendarService():
             logging.error(traceback.format_exc())
             return []
 
-    def get_events(self, time_min=None, time_max=None, max_results=250, show_deleted=False, calendar_id: str ='primary'):
+
+    def list_events(self, calendar_id: str = 'primary', start_time: str | None = None, end_time: str | None = None, max_results: int = 100, query: str | None = None) -> list:
         """
-        Retrieve calendar events within a specified time range.
-        
+        Lists events on the specified calendar within a given time range.
+
         Args:
-            time_min (str, optional): Start time in RFC3339 format. Defaults to current time.
-            time_max (str, optional): End time in RFC3339 format
-            max_results (int): Maximum number of events to return (1-2500)
-            show_deleted (bool): Whether to include deleted events
-            
+            calendar_id: Calendar identifier. Use 'primary' for the primary calendar.
+            start_time: Start time in ISO 8601 format (RFC3339). If None, defaults to now.
+            end_time: End time in ISO 8601 format (RFC3339). Optional.
+            max_results: Maximum number of events to return.
+            query: Free text search query.
+
         Returns:
-            list: List of calendar events
+            A list of event resources.
         """
         try:
-            # If no time_min specified, use current time
-            if not time_min:
-                time_min = datetime.now(pytz.UTC).isoformat()
-                
-            # Ensure max_results is within limits
-            max_results = min(max(1, max_results), 2500)
-            
-            # Prepare parameters
-            params = {
-                'calendarId': calendar_id,
-                'timeMin': time_min,
-                'maxResults': max_results,
-                'singleEvents': True,
-                'orderBy': 'startTime',
-                'showDeleted': show_deleted
-            }
-            
-            # Add optional time_max if specified
-            if time_max:
-                params['timeMax'] = time_max
-                
-            # Execute the events().list() method
-            events_result = self.service.events().list(**params).execute()
-            
-            # Extract the events
+            now = datetime.now(pytz.utc).isoformat()
+            time_min = start_time or now
+
+            events_result = self.service.events().list(
+                calendarId=calendar_id,
+                timeMin=time_min,
+                timeMax=end_time,
+                maxResults=min(max(1, max_results), 2500), # Ensure within bounds
+                singleEvents=True,
+                orderBy='startTime',
+                q=query
+            ).execute()
             events = events_result.get('items', [])
-            
-            # Process and return the events
-            processed_events = []
-            for event in events:
-                processed_event = {
-                    'id': event.get('id'),
-                    'summary': event.get('summary'),
-                    'description': event.get('description'),
-                    'start': event.get('start'),
-                    'end': event.get('end'),
-                    'status': event.get('status'),
-                    'creator': event.get('creator'),
-                    'organizer': event.get('organizer'),
-                    'attendees': event.get('attendees'),
-                    'location': event.get('location'),
-                    'hangoutLink': event.get('hangoutLink'),
-                    'conferenceData': event.get('conferenceData'),
-                    'recurringEventId': event.get('recurringEventId')
-                }
-                processed_events.append(processed_event)
-                
-            return processed_events
-            
+            return events
         except Exception as e:
-            logging.error(f"Error retrieving calendar events: {str(e)}")
-            logging.error(traceback.format_exc())
+            logging.error(f"An error occurred listing events: {e}")
             return []
-        
+
     def create_event(self, summary: str, start_time: str, end_time: str, 
                 location: str | None = None, description: str | None = None, 
                 attendees: list | None = None, send_notifications: bool = True,

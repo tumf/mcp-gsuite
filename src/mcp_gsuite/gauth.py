@@ -11,22 +11,22 @@ from google.auth.transport.requests import Request
 import os
 import pydantic
 import json
-import argparse
+# import argparse # Replaced by settings
+from .settings import settings
+
+# def get_gauth_file() -> str: # Replaced by settings
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--gauth-file",
+#         type=str,
+#         default="./.gauth.json",
+#         help="Path to client secrets file",
+#     )
+#     args, _ = parser.parse_known_args()
+#     return args.gauth_file
 
 
-def get_gauth_file() -> str:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--gauth-file",
-        type=str,
-        default="./.gauth.json",
-        help="Path to client secrets file",
-    )
-    args, _ = parser.parse_known_args()
-    return args.gauth_file
-
-
-CLIENTSECRETS_LOCATION = get_gauth_file()
+CLIENTSECRETS_LOCATION = settings.absolute_gauth_file
 
 REDIRECT_URI = 'http://localhost:4100/code'
 SCOPES = [
@@ -50,20 +50,23 @@ class AccountInfo(pydantic.BaseModel):
         return f"""Account for email: {self.email} of type: {self.account_type}. Extra info for: {self.extra_info}"""
 
 
-def get_accounts_file() -> str:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--accounts-file",
-        type=str,
-        default="./.accounts.json",
-        help="Path to accounts configuration file",
-    )
-    args, _ = parser.parse_known_args()
-    return args.accounts_file
+# def get_accounts_file() -> str: # Replaced by settings
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--accounts-file",
+#         type=str,
+#         default="./.accounts.json",
+#         help="Path to accounts configuration file",
+#     )
+#     args, _ = parser.parse_known_args()
+#     return args.accounts_file
 
 
 def get_account_info() -> list[AccountInfo]:
-    accounts_file = get_accounts_file()
+    accounts_file = settings.absolute_accounts_file
+    if not os.path.exists(accounts_file):
+        logging.error(f"Accounts file not found at: {accounts_file}")
+        return []
     with open(accounts_file) as f:
         data = json.load(f)
         accounts = data.get("accounts", [])
@@ -94,20 +97,20 @@ class NoUserIdException(Exception):
   """Error raised when no user ID could be retrieved."""
 
 
-def get_credentials_dir() -> str:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--credentials-dir",
-        type=str,
-        default=".",
-        help="Directory to store OAuth2 credentials",
-    )
-    args, _ = parser.parse_known_args()
-    return args.credentials_dir
+# def get_credentials_dir() -> str: # Replaced by settings
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument(
+#         "--credentials-dir",
+#         type=str,
+#         default=".",
+#         help="Directory to store OAuth2 credentials",
+#     )
+#     args, _ = parser.parse_known_args()
+#     return args.credentials_dir
 
 
 def _get_credential_filename(user_id: str) -> str:
-    creds_dir = get_credentials_dir()
+    creds_dir = settings.absolute_credentials_dir
     return os.path.join(creds_dir, f".oauth2.{user_id}.json")
 
 

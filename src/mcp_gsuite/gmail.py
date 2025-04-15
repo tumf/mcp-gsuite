@@ -8,11 +8,14 @@ from typing import Tuple
 
 
 class GmailService():
-    def __init__(self, user_id: str):
-        credentials = gauth.get_stored_credentials(user_id=user_id)
-        if not credentials:
-            raise RuntimeError("No Oauth2 credentials stored")
-        self.service = build('gmail', 'v1', credentials=credentials)
+    def __init__(self, service):
+        # credentials = gauth.get_stored_credentials(user_id=user_id) # Handled by auth_helper
+        # if not credentials:
+        #     raise RuntimeError("No Oauth2 credentials stored")
+        # self.service = build('gmail', 'v1', credentials=credentials) # Service is now passed in
+        if not service:
+            raise ValueError("A valid Google API service client must be provided.")
+        self.service = service
 
     def _parse_message(self, txt, parse_body=False) -> dict | None:
         """
@@ -45,7 +48,7 @@ class GmailService():
             for header in headers:
                 name = header.get('name', '').lower()
                 value = header.get('value', '')
-                
+
                 if name == 'subject':
                     metadata['subject'] = value
                 elif name == 'from':
@@ -75,11 +78,11 @@ class GmailService():
                 metadata['mimeType'] = payload.get('mimeType')
 
             return metadata
-
         except Exception as e:
             logging.error(f"Error parsing message: {str(e)}")
             logging.error(traceback.format_exc())
             return None
+
 
     def _extract_body(self, payload) -> str | None:
         """
@@ -92,41 +95,54 @@ class GmailService():
                 data = payload.get('body', {}).get('data')
                 if data:
                     return base64.urlsafe_b64decode(data).decode('utf-8')
-            
+
             # For single part text/html messages
             if payload.get('mimeType') == 'text/html':
                 data = payload.get('body', {}).get('data')
                 if data:
                     return base64.urlsafe_b64decode(data).decode('utf-8')
-            
+
             # For multipart messages (both alternative and related)
             if payload.get('mimeType', '').startswith('multipart/'):
                 parts = payload.get('parts', [])
-                
+
                 # First try to find a direct text/plain part
                 for part in parts:
                     if part.get('mimeType') == 'text/plain':
                         data = part.get('body', {}).get('data')
                         if data:
                             return base64.urlsafe_b64decode(data).decode('utf-8')
-                
+
                 # If no direct text/plain, recursively check nested multipart structures
                 for part in parts:
                     if part.get('mimeType', '').startswith('multipart/'):
                         nested_body = self._extract_body(part)
                         if nested_body:
                             return nested_body
-                            
+
                 # If still no body found, try the first part as fallback
-                if parts and 'body' in parts[0] and 'data' in parts[0]['body']:
+                # Check if 'body' and 'data' exist before accessing
+                if parts and 'body' in parts[0] and parts[0]['body'] and 'data' in parts[0]['body']:
                     data = parts[0]['body']['data']
                     return base64.urlsafe_b64decode(data).decode('utf-8')
 
-            return None
+            return None # Return None if no body found after all checks
 
         except Exception as e:
             logging.error(f"Error extracting body: {str(e)}")
             return None
+
+
+
+    def get_labels(self) -> list:
+        """Lists all labels in the user's mailbox."""
+        try:
+            results = self.service.users().labels().list(userId='me').execute()
+            labels = results.get('labels', [])
+            return labels
+        except Exception as e:
+            logging.error(f"An error occurred fetching labels: {e}")
+            return []
 
     def query_emails(self, query=None, max_results=100):
         """
@@ -142,9 +158,11 @@ class GmailService():
         """
         try:
             # Ensure max_results is within API limits
+
             max_results = min(max(1, max_results), 500)
             
             # Get the list of messages
+
             result = self.service.users().messages().list(
                 userId='me',
                 maxResults=max_results,
@@ -331,10 +349,11 @@ class GmailService():
             original_from = original_message.get('from', '')
             original_body = original_message.get('body', '')
         
+            original_body_quoted = original_body.replace('\n', '\n> ') if original_body else '[No message body]'
             full_reply_body = (
                 f"{reply_body}\n\n"
                 f"On {original_date}, {original_from} wrote:\n"
-                f"> {original_body.replace('\n', '\n> ') if original_body else '[No message body]'}"
+                f"> {original_body_quoted}"
             )
 
             mime_message = MIMEText(full_reply_body)
