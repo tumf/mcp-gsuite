@@ -1,6 +1,7 @@
 # mcp-gsuite MCP server
 
-MCP server to interact with Google produts.
+[![smithery badge](https://smithery.ai/badge/mcp-gsuite)](https://smithery.ai/server/mcp-gsuite)
+MCP server to interact with Google products.
 
 ## Example prompts
 
@@ -47,6 +48,14 @@ Example prompts you can try:
 
 ### Install
 
+### Installing via Smithery
+
+To install mcp-gsuite for Claude Desktop automatically via [Smithery](https://smithery.ai/server/mcp-gsuite):
+
+```bash
+npx -y @smithery/cli install mcp-gsuite --client claude
+```
+
 #### Oauth 2
 
 Google Workspace (G Suite) APIs require OAuth2 authorization. Follow these steps to set up authentication:
@@ -70,6 +79,7 @@ Google Workspace (G Suite) APIs require OAuth2 authorization. Follow these steps
      "https://www.googleapis.com/auth/calendar",
      "https://www.googleapis.com/auth/userinfo.email"
    ]
+```
 
 3. Then create a `.gauth.json` in your working directory with client
 
@@ -129,6 +139,29 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
 }
 ```
 
+
+Note: You can also use the `uv run mcp-gsuite --accounts-file /path/to/custom/.accounts.json` to specify a different accounts file or `--credentials-dir /path/to/custom/credentials` to specify a different credentials directory.
+
+```json
+{
+  "mcpServers": {
+    "mcp-gsuite": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "<dir_to>/mcp-gsuite",
+        "run",
+        "mcp-gsuite",
+        "--accounts-file",
+        "/path/to/custom/.accounts.json",
+        "--credentials-dir",
+        "/path/to/custom/credentials"
+      ]
+    }
+  }
+}
+```
+
 </details>
 
 <details>
@@ -141,7 +174,11 @@ On Windows: `%APPDATA%/Claude/claude_desktop_config.json`
     "mcp-gsuite": {
       "command": "uvx",
       "args": [
-        "mcp-gsuite"
+        "mcp-gsuite",
+        "--accounts-file",
+        "/path/to/custom/.accounts.json",
+        "--credentials-dir",
+        "/path/to/custom/credentials"
       ]
     }
   }
